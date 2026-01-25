@@ -1,0 +1,17 @@
+# ESP-IDF śmieci
+**/build/
+**/sdkconfig
+**/managed_components/
+**/dependencies.lock
+
+# Python śmieci
+**/__pycache__/
+**/*.db
+**/*.pyc
+.venv/
+
+# Systemowe
+.DS_Store
+Thumbs.db
+
+oled/
