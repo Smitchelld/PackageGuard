@@ -44,22 +44,33 @@ typedef enum {
 
 // --- STRUKTURA KONFIGURACJI ---
 typedef struct {
-    // Progi alarmowe
+    // Progi
     float shock_threshold_g;
     float temp_min_c;
     float temp_max_c;
     float hum_max_percent;
+    float pres_min_hpa;
+    float pres_max_hpa;
+    float bat_min_v;
+    float lux_min;
+    float lux_max;
 
     // Przełączniki alarmów
     bool shock_alarm_enabled;
     bool temp_alarm_enabled;
     bool hum_alarm_enabled;
+    bool pres_alarm_enabled;
+    bool bat_alarm_enabled;
+    bool light_alarm_enabled;
     
-    // Ustawienia operacyjne
-    uint32_t status_interval_sec;
-    OperatingMode op_mode;
+    // Przełączniki akcji
+    bool action_buzzer_enabled;
+    bool action_motor_enabled;
+    bool action_led_enabled;
     bool stealth_mode_enabled;
 
+    uint32_t status_interval_sec;
+    OperatingMode op_mode;
 } DeviceConfig;
 
 // --- STRUKTURA STANU ---

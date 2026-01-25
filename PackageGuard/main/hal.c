@@ -127,17 +127,31 @@ void load_device_config(void) {
     } 
     
     if (err != ESP_OK) {
-        ESP_LOGI(TAG, "Brak konfiguracji w NVS lub blad odczytu. Ladowanie domyslnych.");
+        ESP_LOGI(TAG, "Ladowanie domyslnych ustawien...");
         current_config.shock_threshold_g = 0.4f;
-        current_config.temp_min_c = 0.0f;
-        current_config.temp_max_c = 40.0f;
-        current_config.hum_max_percent = 80.0f;
+        current_config.temp_min_c = 5.0f;
+        current_config.temp_max_c = 35.0f;
+        current_config.hum_max_percent = 70.0f;
+        current_config.pres_min_hpa = 950.0f;
+        current_config.pres_max_hpa = 1050.0f;
+        current_config.bat_min_v = 3.4f;
+        current_config.lux_min = 0.0f;
+        current_config.lux_max = 50.0f;
+    
         current_config.shock_alarm_enabled = true;
         current_config.temp_alarm_enabled = false;
         current_config.hum_alarm_enabled = false;
-        current_config.status_interval_sec = 300; // 5 minut
-        current_config.op_mode = MODE_BALANCED;
+        current_config.pres_alarm_enabled = false;
+        current_config.bat_alarm_enabled = true;
+        current_config.light_alarm_enabled = false;
+        
+        current_config.action_buzzer_enabled = true;
+        current_config.action_motor_enabled = true;
+        current_config.action_led_enabled = true;
         current_config.stealth_mode_enabled = false;
+    
+        current_config.status_interval_sec = 60;
+        current_config.op_mode = MODE_BALANCED;
         save_device_config();
     }
 }

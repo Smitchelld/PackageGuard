@@ -45,12 +45,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         sys.mqtt_connected = true;
         esp_mqtt_client_subscribe(mqtt_client, topic_cmd, 1);
         ESP_LOGI("NET", "MQTT Connected");
-        // W przyszłości tutaj można uruchomić wysyłanie bufora
     } else if (event_id == MQTT_EVENT_DISCONNECTED) {
         sys.mqtt_connected = false;
-        ESP_LOGI("NET", "MQTT Disconnected");
     } else if (event_id == MQTT_EVENT_DATA) {
-        char data_buf[256];
+        char data_buf[1024]; // Zwiększony bufor dla dużego JSONa
         int len = event->data_len > sizeof(data_buf) - 1 ? sizeof(data_buf) - 1 : event->data_len;
         memcpy(data_buf, event->data, len);
         data_buf[len] = '\0';
@@ -59,43 +57,52 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         if (!json) return;
 
         bool config_changed = false;
-        bool state_changed = false;
 
-        cJSON *item = cJSON_GetObjectItem(json, "set");
-        if (cJSON_IsString(item)) {
-            if (strcmp(item->valuestring, "ARM") == 0) {
-                sys.is_armed = true;
-                state_changed = true;
-                sd_log_event("CMD_ARMED", 1);
-            } else if (strcmp(item->valuestring, "DISARM") == 0) {
-                sys.is_armed = false;
-                state_changed = true;
-                sd_log_event("CMD_DISARMED", 0);
-            }
+        // 1. ARM/DISARM
+        cJSON *set_item = cJSON_GetObjectItem(json, "set");
+        if (cJSON_IsString(set_item)) {
+            if (strcmp(set_item->valuestring, "ARM") == 0) sys.is_armed = true;
+            else if (strcmp(set_item->valuestring, "DISARM") == 0) sys.is_armed = false;
+            save_persistent_state();
         }
 
-        cJSON *config_json = cJSON_GetObjectItem(json, "config");
-        if (config_json) {
-            ESP_LOGI("NET", "Odebrano nowa konfiguracje przez MQTT.");
-            
-            cJSON *cfg_item;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "shock_threshold_g"))) current_config.shock_threshold_g = cfg_item->valuedouble;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "temp_min_c"))) current_config.temp_min_c = cfg_item->valuedouble;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "temp_max_c"))) current_config.temp_max_c = cfg_item->valuedouble;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "hum_max_percent"))) current_config.hum_max_percent = cfg_item->valuedouble;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "shock_alarm_enabled"))) current_config.shock_alarm_enabled = cJSON_IsTrue(cfg_item);
-            if((cfg_item = cJSON_GetObjectItem(config_json, "temp_alarm_enabled"))) current_config.temp_alarm_enabled = cJSON_IsTrue(cfg_item);
-            if((cfg_item = cJSON_GetObjectItem(config_json, "hum_alarm_enabled"))) current_config.hum_alarm_enabled = cJSON_IsTrue(cfg_item);
-            if((cfg_item = cJSON_GetObjectItem(config_json, "status_interval_sec"))) current_config.status_interval_sec = cfg_item->valueint;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "op_mode"))) current_config.op_mode = (OperatingMode)cfg_item->valueint;
-            if((cfg_item = cJSON_GetObjectItem(config_json, "stealth_mode_enabled"))) current_config.stealth_mode_enabled = cJSON_IsTrue(cfg_item);
+        // 2. PEŁNA KONFIGURACJA
+        cJSON *cfg = cJSON_GetObjectItem(json, "config");
+        if (cfg) {
+            cJSON *i;
+            // Progi
+            if((i = cJSON_GetObjectItem(cfg, "shock_threshold_g"))) current_config.shock_threshold_g = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "temp_min_c")))       current_config.temp_min_c = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "temp_max_c")))       current_config.temp_max_c = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "hum_max_percent")))  current_config.hum_max_percent = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "pres_min_hpa")))     current_config.pres_min_hpa = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "pres_max_hpa")))     current_config.pres_max_hpa = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "bat_min_v")))        current_config.bat_min_v = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "lux_min"))) current_config.lux_min = i->valuedouble;
+            if((i = cJSON_GetObjectItem(cfg, "lux_max"))) current_config.lux_max = i->valuedouble;
+
+            // Włączniki sensorów
+            if((i = cJSON_GetObjectItem(cfg, "shock_alarm_enabled"))) current_config.shock_alarm_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "temp_alarm_enabled")))  current_config.temp_alarm_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "hum_alarm_enabled")))   current_config.hum_alarm_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "pres_alarm_enabled")))  current_config.pres_alarm_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "bat_alarm_enabled")))   current_config.bat_alarm_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "light_alarm_enabled"))) current_config.light_alarm_enabled = cJSON_IsTrue(i);
+
+            // Włączniki akcji 
+            if((i = cJSON_GetObjectItem(cfg, "action_buzzer_enabled"))) current_config.action_buzzer_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "action_motor_enabled")))  current_config.action_motor_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "action_led_enabled")))    current_config.action_led_enabled = cJSON_IsTrue(i);
+            if((i = cJSON_GetObjectItem(cfg, "stealth_mode_enabled")))  current_config.stealth_mode_enabled = cJSON_IsTrue(i);
+
+            // System
+            if((i = cJSON_GetObjectItem(cfg, "status_interval_sec"))) current_config.status_interval_sec = i->valueint;
             
             config_changed = true;
+            ESP_LOGI("NET", "Zaktualizowano konfiguracje MQTT");
         }
         
         cJSON_Delete(json);
-
-        if (state_changed) save_persistent_state();
         if (config_changed) save_device_config();
     }
 }

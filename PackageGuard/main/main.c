@@ -12,7 +12,7 @@
 #include "i2cdev.h"
 #include "oledDriver.h"
 
-// --- ZMIENNE GLOBALNE (DEFINICJE) ---
+// --- ZMIENNE GLOBALNE ---
 SystemState sys = { .is_armed = true, .alarm_count = 0, .display_active = false, .sd_mounted = false };
 DeviceConfig current_config;
 SemaphoreHandle_t i2c_mutex = NULL;
@@ -37,8 +37,7 @@ void app_main(void) {
 
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) { nvs_flash_erase(); nvs_flash_init(); }
-    
-    // ŁADUJEMY KONFIGURACJĘ PRZED WSZYSTKIM INNYM
+    \
     load_device_config();
 
     esp_netif_init(); 
@@ -46,7 +45,7 @@ void app_main(void) {
     i2cdev_init();
 
     setup_ble_nimble();
-    setup_hal_init(); // SD, RGB, Buzzer, ADC
+    setup_hal_init();
 
     load_persistent_state(); 
     sd_log_event("SYSTEM_BOOT", 1.0);
