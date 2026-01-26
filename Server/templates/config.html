@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ustawienia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<style>
+.section-title{
+    color:#0d6efd;
+    border-bottom:2px solid #eee;
+    padding-bottom:5px;
+    margin:18px 0 10px;
+    font-weight:bold;
+    font-size:0.8rem;
+    text-transform:uppercase;
+}
+label.small{font-size:0.75rem;}
+</style>
+</head>
+
+<body class="bg-light">
+<div class="container py-4">
+<div class="card shadow-sm mx-auto" style="max-width:650px;">
+<div class="card-body">
+
+<h5 class="fw-bold mb-3">Konfiguracja: {{device.name}}</h5>
+
+<form method="post">
+
+<!-- ===== WYZWALACZE ===== -->
+<div class="section-title">Wyzwalacze alarmów</div>
+<div class="row g-2">
+{% for key, lbl in [
+('shock_en','Wstrząsy'),
+('temp_en','Temperatura'),
+('hum_en','Wilgotność'),
+('pres_en','Ciśnienie'),
+('light_en','Światło'),
+('bat_en','Bateria')
+] %}
+<div class="col-6">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="{{key}}" {{'checked' if device[key+'abled']}}>
+        <label class="form-check-label">{{lbl}}</label>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- ===== REAKCJE ===== -->
+<div class="section-title">Reakcje</div>
+<div class="row g-2">
+<div class="col-4">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="buzz_en" {{'checked' if device.action_buzzer_enabled}}>
+        Buzzer
+    </div>
+</div>
+<div class="col-4">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="mot_en" {{'checked' if device.action_motor_enabled}}>
+        Motor
+    </div>
+</div>
+<div class="col-4">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="led_en" {{'checked' if device.action_led_enabled}}>
+        LED
+    </div>
+</div>
+<div class="col-12">
+    <div class="form-check form-switch text-danger">
+        <input class="form-check-input" type="checkbox" name="stealth_en" {{'checked' if device.stealth_mode_enabled}}>
+        <b>TRYB CICHY</b>
+    </div>
+</div>
+</div>
+
+<!-- ===== PROGI ===== -->
+<div class="section-title">Progi alarmowe</div>
+<div class="row g-2">
+
+<div class="col-6">
+    <label class="small">Shock (G)</label>
+    <input type="number" step="0.05" name="shock_g" class="form-control form-control-sm" value="{{device.shock_threshold_g}}">
+</div>
+
+<div class="col-6">
+    <label class="small">Bateria min (V)</label>
+    <input type="number" step="0.1" name="bat_min" class="form-control form-control-sm" value="{{device.bat_min_v}}">
+</div>
+
+<div class="col-12">
+    <label class="small">Temperatura (°C)</label>
+    <div class="input-group input-group-sm">
+        <input type="number" name="temp_min" class="form-control" value="{{device.temp_min_c}}">
+        <input type="number" name="temp_max" class="form-control" value="{{device.temp_max_c}}">
+    </div>
+</div>
+
+<div class="col-12">
+    <label class="small">Wilgotność max (%)</label>
+    <input type="number" name="hum_max" class="form-control form-control-sm" value="{{device.hum_max_percent}}">
+</div>
+
+<div class="col-12">
+    <label class="small">Ciśnienie (hPa)</label>
+    <div class="input-group input-group-sm">
+        <input type="number" name="pres_min" class="form-control" value="{{device.pres_min_hpa}}">
+        <input type="number" name="pres_max" class="form-control" value="{{device.pres_max_hpa}}">
+    </div>
+</div>
+
+<div class="col-12">
+    <label class="small">Światło (lux)</label>
+    <div class="input-group input-group-sm">
+        <input type="number" name="lux_min" class="form-control" value="{{device.lux_min}}">
+        <input type="number" name="lux_max" class="form-control" value="{{device.lux_max}}">
+    </div>
+</div>
+
+<div class="col-12">
+    <label class="small">Interwał raportu (sekundy)</label>
+    <input type="number" name="interval" class="form-control form-control-sm" value="{{device.status_interval_sec}}">
+</div>
+
+</div>
+
+<!-- ===== AKCJE ===== -->
+<div class="mt-4 d-flex justify-content-between pt-3 border-top">
+    <a href="/" class="btn btn-sm btn-outline-secondary px-4">Anuluj</a>
+    <button class="btn btn-sm btn-primary px-4 shadow-sm">Zapisz i wyślij</button>
+</div>
+
+</form>
+</div>
+</div>
+</div>
+</body>
+</html>

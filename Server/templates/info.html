@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Info urządzenia {{device.name}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f2f5; }
+        .card-dev { border-radius: 15px; border: none; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .chart-card { max-width: 500px; margin-bottom: 20px; height: 250px; } /* ograniczenie wysokości */
+        canvas { height: 100% !important; width: 100% !important; }
+        h6 { font-weight: 600; }
+        .time-select { max-width: 200px; }
+        .top-bar { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <div class="top-bar d-flex justify-content-between align-items-center">
+        <h4 class="fw-bold text-primary">{{device.name}} ({{device.mac}})</h4>
+        <div>
+            <a href="/" class="btn btn-sm btn-outline-secondary">Powrót</a>
+        </div>
+    </div>
+
+    <form method="get" class="mb-4 d-flex align-items-center gap-2">
+        <label for="minutes" class="mb-0">Ostatnie dane (minuty):</label>
+        <select id="minutes" name="minutes" class="form-select form-select-sm time-select" onchange="this.form.submit()">
+            <option value="15" {% if minutes==15 %}selected{% endif %}>15</option>
+            <option value="30" {% if minutes==30 %}selected{% endif %}>30</option>
+            <option value="60" {% if minutes==60 %}selected{% endif %}>60</option>
+            <option value="120" {% if minutes==120 %}selected{% endif %}>120</option>
+        </select>
+    </form>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card card-dev chart-card p-3">
+                <h6>Siła wstrząsu (G)</h6>
+                <canvas id="gChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card card-dev chart-card p-3">
+                <h6>Temperatura (°C)</h6>
+                <canvas id="tempChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card card-dev chart-card p-3">
+                <h6>Wilgotność (%)</h6>
+                <canvas id="humChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card card-dev chart-card p-3">
+                <h6>Bateria (V)</h6>
+                <canvas id="batChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const telemetry = {{ telemetry | tojson }};
+const labels = telemetry.map(t => t.ts.slice(11,19)); // HH:MM:SS
+
+function createChart(canvasId, data, label, color){
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                borderColor: color,
+                backgroundColor: color.replace('1)','0.2)'),
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: true, title: { display: true, text: 'Czas' } },
+                y: { display: true, title: { display: true, text: label } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// Dane do wykresów
+const gData = telemetry.map(t => t.g);
+const tempData = telemetry.map(t => t.temp);
+const humData = telemetry.map(t => t.hum);
+const batData = telemetry.map(t => t.bat);
+
+// Tworzenie wykresów
+createChart('gChart', gData, 'G', 'rgba(220,53,69,1)');
+createChart('tempChart', tempData, 'Temp (°C)', 'rgba(255,165,0,1)');
+createChart('humChart', humData, 'Wilg (%)', 'rgba(0,123,255,1)');
+createChart('batChart', batData, 'Bateria (V)', 'rgba(40,167,69,1)');
+</script>
+
+</body>
+</html>
