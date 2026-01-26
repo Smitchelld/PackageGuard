@@ -128,29 +128,29 @@ void load_device_config(void) {
     
     if (err != ESP_OK) {
         ESP_LOGI(TAG, "Ladowanie domyslnych ustawien...");
-        current_config.shock_threshold_g = 0.4f;
-        current_config.temp_min_c = 5.0f;
-        current_config.temp_max_c = 35.0f;
-        current_config.hum_max_percent = 70.0f;
-        current_config.pres_min_hpa = 950.0f;
-        current_config.pres_max_hpa = 1050.0f;
-        current_config.bat_min_v = 3.4f;
+        current_config.shock_threshold_g = 0.0f;
+        current_config.temp_min_c = 0.0f;
+        current_config.temp_max_c = 0.0f;
+        current_config.hum_max_percent = 0.0f;
+        current_config.pres_min_hpa = 0.0f;
+        current_config.pres_max_hpa = 0.0f;
+        current_config.bat_min_v = 0.0f;
         current_config.lux_min = 0.0f;
-        current_config.lux_max = 50.0f;
+        current_config.lux_max = 0.0f;
     
-        current_config.shock_alarm_enabled = true;
+        current_config.shock_alarm_enabled = false;
         current_config.temp_alarm_enabled = false;
         current_config.hum_alarm_enabled = false;
         current_config.pres_alarm_enabled = false;
-        current_config.bat_alarm_enabled = true;
+        current_config.bat_alarm_enabled = false;
         current_config.light_alarm_enabled = false;
         
-        current_config.action_buzzer_enabled = true;
-        current_config.action_motor_enabled = true;
-        current_config.action_led_enabled = true;
+        current_config.action_buzzer_enabled = false;
+        current_config.action_motor_enabled = false;
+        current_config.action_led_enabled = false;
         current_config.stealth_mode_enabled = false;
     
-        current_config.status_interval_sec = 60;
+        current_config.status_interval_sec = 10;
         current_config.op_mode = MODE_BALANCED;
         save_device_config();
     }
@@ -166,5 +166,21 @@ void save_device_config(void) {
         }
         nvs_close(h);
         ESP_LOGI(TAG, "Zapisano konfiguracje w NVS. Status: %s", esp_err_to_name(err));
+    }
+}
+
+void sd_save_offline(const char* topic, const char* json_payload) {
+    if (!sys.sd_mounted) return;
+    
+    if (xSemaphoreTake(sd_mutex, pdMS_TO_TICKS(1000))) {
+        FILE* f = fopen("/sdcard/sync.txt", "a"); 
+        if (f != NULL) {
+            fprintf(f, "%s|%s\n", topic, json_payload);
+            fclose(f);
+            ESP_LOGI("SD_OFFLINE", "Zapisano offline.");
+        } else {
+            ESP_LOGE("SD_OFFLINE", "Blad otwarcia");
+        }
+        xSemaphoreGive(sd_mutex);
     }
 }

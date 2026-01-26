@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Nagłówek: Nazwa i Status -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView android:id="@+id/deviceName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/statusText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentEnd="true" android:textSize="12sp" android:textStyle="bold" />
+        </RelativeLayout>
+
+        <TextView android:id="@+id/deviceMac" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="#888" />
+
+        <!-- Siatka Telemetrii -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:layout_marginTop="8dp"
+            android:background="#F8F9FA"
+            android:padding="4dp">
+            <TextView android:id="@+id/txtTemp" android:text="T: --" android:textSize="12sp" android:layout_columnWeight="1" />
+            <TextView android:id="@+id/txtHum" android:text="H: --" android:textSize="12sp" android:layout_columnWeight="1" />
+            <TextView android:id="@+id/txtBat" android:text="B: --" android:textSize="12sp" android:layout_columnWeight="1" />
+            <TextView android:id="@+id/txtPres" android:text="P: --" android:textSize="12sp" android:layout_columnWeight="1" />
+            <TextView android:id="@+id/txtLux" android:text="L: --" android:textSize="12sp" android:layout_columnWeight="1" />
+            <TextView android:id="@+id/txtShock" android:text="G: --" android:textSize="12sp" android:layout_columnWeight="1" android:textColor="#D32F2F" />
+        </GridLayout>
+
+        <!-- Sekcja Alarmów -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OSTATNIE ALARMY:"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:textColor="#666"/>
+        <TextView
+            android:id="@+id/txtAlarmsHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Brak zdarzeń"
+            android:textSize="11sp"
+            android:textColor="#D32F2F"
+            android:lines="3"/>
+
+        <!-- Przyciski -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:gravity="end">
+            <Button android:id="@+id/btnArm" android:layout_width="wrap_content" android:layout_height="36dp" android:text="Uzbrój" android:textSize="10sp" style="?android:attr/buttonBarButtonStyle" />
+            <Button android:id="@+id/btnDisarm" android:layout_width="wrap_content" android:layout_height="36dp" android:text="Rozbrój" android:textSize="10sp" style="?android:attr/buttonBarButtonStyle" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -16,16 +16,21 @@ static TaskHandle_t sensor_task_handle = NULL;
 
 void logic_set_sensor_task_handle(TaskHandle_t h) { sensor_task_handle = h; }
 
-// Funkcja pomocnicza do wyzwalania fizycznych efektów alarmu
+// --- NOWA FUNKCJA: WYZWALACZ ALARMÓW LOKALNYCH ---
 void trigger_alarm_actions(uint8_t r, uint8_t g, uint8_t b, int duration_ms) {
-    if (current_config.stealth_mode_enabled) return; // W trybie cichym nic nie robimy lokalnie
+    // Sprawdź, czy w ogóle można alarmować (tryb cichy)
+    if (current_config.stealth_mode_enabled) return; 
 
+    // LED
     if (current_config.action_led_enabled) set_rgb_color(r, g, b);
+    // Buzzer
     if (current_config.action_buzzer_enabled) buzzer_beep(true);
+    // Wibracje
     if (current_config.action_motor_enabled) gpio_set_level(PIN_MOTOR, 1);
 
     vTaskDelay(pdMS_TO_TICKS(duration_ms));
 
+    // Wyłączenie
     if (current_config.action_buzzer_enabled) buzzer_beep(false);
     if (current_config.action_motor_enabled) gpio_set_level(PIN_MOTOR, 0);
     led_strip_clear_wrapper();
@@ -53,7 +58,8 @@ void sensor_task(void *arg) {
     TickType_t last_status_publish = 0;
     TickType_t last_env_alarm = 0;
     TickType_t last_bat_alarm = 0;
-    const TickType_t env_debounce_ms = pdMS_TO_TICKS(60000); // 1 min przerwy między alarmami tego samego typu
+    const TickType_t alarm_debounce_ms = pdMS_TO_TICKS(60000); // 1 min przerwy między alarmami środowiskowymi
+    const TickType_t bat_debounce_ms = pdMS_TO_TICKS(300000);  // 5 min przerwy dla baterii
 
     ESP_LOGI(TAG, "Sensor task started");
 
@@ -62,14 +68,12 @@ void sensor_task(void *arg) {
         uint32_t notified = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1000));
         
         if(xSemaphoreTake(i2c_mutex, portMAX_DELAY)) {
-            // Czytamy status, żeby skasować przerwanie w MPU
+            // Czytamy sensory
             i2c_dev_read_reg((i2c_dev_t*)&mpu, 0x3A, &mpu_int_status, 1);
-            
             mpu6050_get_acceleration(&mpu, &acc);
             sys.acc_x = acc.x; sys.acc_y = acc.y; sys.acc_z = acc.z;
             sys.acc_mag = sqrtf(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
-            
-            bmp280_read_float(&bme, &sys.temp, &sys.pres, &sys.hum);
+            bmp280_read_float(&bme, &sys.temp, &sys.pres, &sys.hum); 
             xSemaphoreGive(i2c_mutex);
         }
         read_battery();
@@ -82,12 +86,13 @@ void sensor_task(void *arg) {
                 if (((notified > 0) && (mpu_int_status & 0x40)) || diff > current_config.shock_threshold_g) {
                      sys.alarm_count++; save_persistent_state();
                      publish_event("ALARM_SHOCK", sys.acc_mag);
-                     trigger_alarm_actions(255, 0, 0, 600); // Czerwony
+                     trigger_alarm_actions(255, 0, 0, 600); // Czerwony (600ms)
+                     vTaskDelay(pdMS_TO_TICKS(500)); // Chwila spokoju
                 }
             }
 
             // 2. Alarmy Środowiskowe (z debouncem 1 min)
-            if (xTaskGetTickCount() - last_env_alarm > env_debounce_ms) {
+            if (xTaskGetTickCount() - last_env_alarm > bat_debounce_ms) {
                 bool triggered = false;
                 
                 if (current_config.temp_alarm_enabled && (sys.temp > current_config.temp_max_c || sys.temp < current_config.temp_min_c)) {
@@ -106,17 +111,17 @@ void sensor_task(void *arg) {
                 if (triggered) {
                     last_env_alarm = xTaskGetTickCount();
                     sys.alarm_count++; save_persistent_state();
-                    trigger_alarm_actions(255, 165, 0, 400); // Pomarańczowy
+                    trigger_alarm_actions(255, 165, 0, 400); // Pomarańczowy (400ms)
                 }
             }
         }
 
-        // 3. Alarm Baterii (Działa zawsze)
+        // 3. Alarm Baterii (Działa zawsze, co 5 min)
         if (current_config.bat_alarm_enabled && sys.battery_voltage < current_config.bat_min_v) {
-            if (xTaskGetTickCount() - last_bat_alarm > pdMS_TO_TICKS(300000)) { // co 5 min
+            if (xTaskGetTickCount() - last_bat_alarm > bat_debounce_ms) {
                 last_bat_alarm = xTaskGetTickCount();
                 publish_event("ALARM_BAT", sys.battery_voltage);
-                trigger_alarm_actions(0, 0, 255, 200); // Niebieski błysk
+                trigger_alarm_actions(0, 0, 255, 200); // Niebieski (200ms)
             }
         }
 
@@ -127,6 +132,8 @@ void sensor_task(void *arg) {
         }
     }
 }
+
+// --- FUNKCJE DLA DISPLAY TASK ---
 
 void get_time_str(char *buffer, size_t size) {
     time_t now; struct tm timeinfo; time(&now); localtime_r(&now, &timeinfo);
@@ -139,6 +146,7 @@ void display_task(void *arg) {
     int led_blink_timer = 0;
 
     while(1) {
+        // Kontrola LED w trybie Setup
         if (is_setup_mode) {
             led_blink_timer++;
             if (led_blink_timer > 6) { 
@@ -146,6 +154,8 @@ void display_task(void *arg) {
                 led_strip_clear_wrapper(); led_blink_timer = 0;
             }
         }
+        
+        // Kontrola wyświetlacza
         if (view_mode_timer > 0) {
             sys.display_active = true; blink = !blink;
             if(xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(200))) {
@@ -171,7 +181,8 @@ void display_task(void *arg) {
         } else {
             if (sys.display_active) {
                 if(xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(200))) { screen_clear_buffer(); screen_refresh(); xSemaphoreGive(i2c_mutex); }
-                sys.display_active = false; ble_app_advertise(); 
+                sys.display_active = false; 
+                ble_enter_sleep_mode(); 
             }
         }
         vTaskDelay(pdMS_TO_TICKS(500));

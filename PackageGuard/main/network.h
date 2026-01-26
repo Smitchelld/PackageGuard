@@ -9,3 +9,5 @@ void publish_data(void);
 void publish_event(const char* type, float val);
 void setup_ble_nimble(void);
 void ble_app_advertise(void);
+void ble_enter_sleep_mode(void);
+void ble_enter_pairing_mode(void);

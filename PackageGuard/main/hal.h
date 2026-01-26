@@ -15,3 +15,5 @@ void read_battery(void);
 void get_datetime_str(char *buffer, size_t size);
 void load_device_config(void);
 void save_device_config(void);
+void sd_save_offline(const char* topic, const char* json_payload);
+void sync_offline_data(void);

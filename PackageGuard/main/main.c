@@ -58,9 +58,11 @@ void app_main(void) {
     if (load_wifi_conf() == ESP_OK && strlen(conf_ssid) > 0) {
         is_setup_mode = false;
         uint8_t mac[6]; esp_read_mac(mac, ESP_MAC_WIFI_STA); sprintf(dev_mac, "%02X%02X%02X%02X%02X%02X", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-        sprintf(topic_data,  "packageguard/user1/%s/data", dev_mac); sprintf(topic_event, "packageguard/user1/%s/event", dev_mac); sprintf(topic_cmd,   "packageguard/user1/%s/cmd",   dev_mac);
+        sprintf(topic_data,  "packageguard/%s/%s/data",  conf_user, dev_mac);
+        sprintf(topic_event, "packageguard/%s/%s/event", conf_user, dev_mac);
+        sprintf(topic_cmd,   "packageguard/%s/%s/cmd",   conf_user, dev_mac);
         setup_network_sta();
-        xTaskCreate(sensor_task, "Sens", 4096, NULL, 10, &sensor_task_handle);
+        xTaskCreate(sensor_task, "Sens", 8192, NULL, 10, &sensor_task_handle);
         logic_set_sensor_task_handle(sensor_task_handle);
         xTaskCreate(display_task, "Disp", 4096, NULL, 5, NULL);
     } else {
@@ -82,7 +84,7 @@ void app_main(void) {
                 if (hold_ms % 1000 == 0) { buzzer_beep(true); vTaskDelay(pdMS_TO_TICKS(50)); buzzer_beep(false); }
                 if (hold_ms >= 3000) { buzzer_beep(true); if(xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(100))) { screen_clear_buffer(); screen_write_text(0, 20, "RESETOWANIE..."); screen_refresh(); xSemaphoreGive(i2c_mutex); } vTaskDelay(pdMS_TO_TICKS(1000)); buzzer_beep(false); nvs_flash_erase(); esp_restart(); reset_triggered = true; break; }
             }
-            if (!reset_triggered) { view_mode_timer = 60; ble_app_advertise(); }
+            if (!reset_triggered) { view_mode_timer = 60; ble_enter_pairing_mode();; }
         }
         if (view_mode_timer > 0) { view_mode_timer--; vTaskDelay(pdMS_TO_TICKS(1000)); } else vTaskDelay(pdMS_TO_TICKS(100));
     }
