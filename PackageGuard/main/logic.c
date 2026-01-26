@@ -41,7 +41,7 @@ void setup_mpu_wom(mpu6050_dev_t *dev) {
         i2c_dev_t *base_dev = (i2c_dev_t *)dev; uint8_t val;
         val=0x00; i2c_dev_write_reg(base_dev, 0x6B, &val, 1); vTaskDelay(pdMS_TO_TICKS(10));
         val=0x01; i2c_dev_write_reg(base_dev, 0x1C, &val, 1); 
-        val=12; i2c_dev_write_reg(base_dev, 0x1F, &val, 1); // Prog ok 0.4g
+        val=6; i2c_dev_write_reg(base_dev, 0x1F, &val, 1); // Prog ok 0.4g
         val=1; i2c_dev_write_reg(base_dev, 0x20, &val, 1); 
         val=0x40; i2c_dev_write_reg(base_dev, 0x38, &val, 1);
         xSemaphoreGive(i2c_mutex);
